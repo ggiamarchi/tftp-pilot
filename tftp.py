@@ -50,13 +50,11 @@ class RequestHandler(BaseHandler):
         peer_mac = self.get_mac_address(peer_ip)
 
         if peer_mac == None:
-            logging.error("Peer MAC address found for %s : %s" %
-                          (peer_ip, peer_mac))
+            logging.info("Peer MAC address not found for %s" % peer_ip)
             raise Exception()
 
-        logging.info("Peer MAC address not found for %s" % peer_ip)
-
-        pxe_pilot_host = None
+        logging.error("Peer MAC address found for %s : %s" %
+                      (peer_ip, peer_mac))
 
         r = requests.get("%s/v1/hosts?status=false" % self._pxe_pilot_url)
 
@@ -68,6 +66,7 @@ class RequestHandler(BaseHandler):
 
         logging.debug("PXE Pilot hosts read : %r" % hosts)
 
+        pxe_pilot_host = None
         for host in hosts:
             for mac in host['macAddresses']:
                 if mac == peer_mac:
