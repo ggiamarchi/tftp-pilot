@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import re
 
 import requests
 
@@ -13,9 +14,10 @@ from fbtftp.base_server import BaseServer
 
 
 class FileResponseData(ResponseData):
-    def __init__(self, path):
-        self._size = os.stat(path).st_size
-        self._reader = open(path, "rb")
+    def __init__(self, root, path):
+        fullpath = re.sub("/+", "/", "%s/%s" % (root, path))
+        self._size = os.stat(fullpath).st_size
+        self._reader = open(fullpath, "rb")
 
     def read(self, n):
         return self._reader.read(n)
@@ -76,7 +78,7 @@ class RequestHandler(BaseHandler):
         logging.info(
             "Returning satic file response to peer host %s" % peer_ip)
 
-        return FileResponseData(os.path.join(self._root, self._path))
+        return FileResponseData(self._root, self._path)
 
     def get_response_data(self):
         if self._path == 'boot.efi' or self._path == '/boot.efi':
@@ -87,9 +89,9 @@ class RequestHandler(BaseHandler):
             peer_mac = self.get_mac_address(peer_ip)
             filename = "pxelinux.cfg/01-" + peer_mac.lower().replace(":", "-")
             logging.info("%r | %r | %r" % (peer_ip, peer_mac, filename))
-            return FileResponseData(os.path.join(self._root, filename))
+            return FileResponseData(self._root, filename)
 
-        return FileResponseData(os.path.join(self._root, self._path))
+        return FileResponseData(self._root, self._path)
 
 
 class TftpServer(BaseServer):
