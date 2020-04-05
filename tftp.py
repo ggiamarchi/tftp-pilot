@@ -140,6 +140,8 @@ def get_arguments():
     parser.add_argument(
         "--timeout", type=int, default=2, help="timeout for packet retransmission (s)"
     )
+    parser.add_argument(
+        "--log", type=str, default="INFO", help="Logging level (INFO, ERROR, DEBUG)"
     )
     parser.add_argument(
         "--root", type=str, default="", help="root of the static filesystem"
@@ -176,7 +178,18 @@ def print_server_stats(stats):
 
 def main():
     args = get_arguments()
-    logging.getLogger().setLevel(logging.DEBUG)
+
+    if args.log == "INFO":
+        log_level = logging.INFO
+    elif args.log == "ERROR":
+        log_level = logging.ERROR
+    elif args.log == "DEBUG":
+        log_level = logging.DEBUG
+    else:
+        print("ERROR : Invalid log level")
+
+    logging.getLogger().setLevel(log_level)
+
     server = TftpServer(
         args.bind,
         args.port,
