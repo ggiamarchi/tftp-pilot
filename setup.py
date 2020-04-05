@@ -19,7 +19,7 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
-        "Topic:: System:: Boot",
+        "Topic :: System :: Boot",
         "Topic :: System :: Boot :: Init",
         "Topic :: System :: Installation/Setup",
         "Topic :: System :: Networking",
