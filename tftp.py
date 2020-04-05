@@ -204,6 +204,7 @@ def main():
     logging.getLogger().setLevel(log_level)
 
     logging.info("Starting TFTP server on %s:%s" % (args.bind, args.port))
+    logging.info("TFTP root directory is %s" % args.root)
 
     server = TftpServer(
         args.bind,
@@ -218,7 +219,6 @@ def main():
     )
     try:
         server.run()
-        logging.info("TFTP root directory is %s" % args.root)
     except KeyboardInterrupt:
         server.close()
 
