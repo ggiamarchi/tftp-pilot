@@ -122,23 +122,24 @@ class TftpServer(BaseServer):
 def get_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--bind", type=str, default="::",
-                        help="IP address to bind to")
+    parser.add_argument(
+        "--bind", type=str, default="::", help="IP address to bind to")
 
-    parser.add_argument("--port", type=int, default=6969,
-                        help="port to bind to")
+    parser.add_argument(
+        "--port", type=int, default=6969, help="port to bind to")
 
-    parser.add_argument("--pxe-pilot-url", type=str,
-                        help="PXE Pilot API base URL")
+    parser.add_argument(
+        "--pxe-pilot-url", type=str, help="PXE Pilot API base URL")
 
-    parser.add_argument("--pxe-pilot-local", type=str, default="local",
-                        help="PXE Pilot local boot configuration name")
+    parser.add_argument(
+        "--pxe-pilot-local", type=str, default="local", help="PXE Pilot local boot configuration name")
 
     parser.add_argument(
         "--retries", type=int, default=5, help="number of per-packet retries"
     )
     parser.add_argument(
-        "--timeout_s", type=int, default=2, help="timeout for packet retransmission"
+        "--timeout", type=int, default=2, help="timeout for packet retransmission (s)"
+    )
     )
     parser.add_argument(
         "--root", type=str, default="", help="root of the static filesystem"
@@ -180,7 +181,7 @@ def main():
         args.bind,
         args.port,
         args.retries,
-        args.timeout_s,
+        args.timeout,
         args.root,
         args.pxe_pilot_url,
         args.pxe_pilot_local,
