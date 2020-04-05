@@ -95,8 +95,6 @@ class RequestHandler(BaseHandler):
         return FileResponseData(self._root, filename)
 
     def get_response_data(self):
-        logging.info("%s | GET %s" % (self._peer[0], self._path))
-
         if self._path == 'boot.efi' or self._path == '/boot.efi':
             return self.get_bootloader_response()
 
