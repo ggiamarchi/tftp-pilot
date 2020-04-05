@@ -49,47 +49,63 @@ class RequestHandler(BaseHandler):
         peer_ip = self._peer[0]
         peer_mac = self.get_mac_address(peer_ip)
 
-        logging.info("Peer MAC address found for %s :: %s" %
-                     (peer_ip, peer_mac))
+        if peer_mac == None:
+            logging.error("Peer MAC address found for %s : %s" %
+                          (peer_ip, peer_mac))
+            raise Exception()
+
+        logging.info("Peer MAC address not found for %s" % peer_ip)
 
         pxe_pilot_host = None
 
         r = requests.get("%s/v1/hosts?status=false" % self._pxe_pilot_url)
-        # TODO check responses errors
+
+        if r.status_code != 200:
+            logging.error("Unable to read host list from PXE Pilot")
+            raise Exception()
 
         hosts = r.json()
 
-        logging.info("Pxe Pilot hosts :: %r" % hosts)
+        logging.debug("PXE Pilot hosts read : %r" % hosts)
 
         for host in hosts:
-            logging.info("1 :: %r" % host)
             for mac in host['macAddresses']:
-                logging.info("2 :: %s - %s" % (mac, peer_mac))
                 if mac == peer_mac:
-                    logging.info("Pxe Pilot host found :: %r" % host)
+                    logging.debug("Pxe Pilot host found :: %r" % host)
                     pxe_pilot_host = host
                     break
 
         if pxe_pilot_host != None and pxe_pilot_host['configuration']['name'] == self._pxe_pilot_local:
             logging.info(
-                "Returning empty response to peer host %s" % peer_ip)
+                "PXE Pilot config is '%s'. Returning empty response to peer host %s" % (self._pxe_pilot_local, peer_ip))
             return StringResponseData("")
 
         logging.info(
-            "Returning satic file response to peer host %s" % peer_ip)
+            "Returning static file %s to peer host %s" % (self._path, peer_ip))
 
         return FileResponseData(self._root, self._path)
 
+    def get_bootloader_config_response(self):
+        peer_ip = self._peer[0]
+        peer_mac = self.get_mac_address(peer_ip)
+        filename = "pxelinux.cfg/01-" + peer_mac.lower().replace(":", "-")
+
+        logging.info(
+            "Returning bootloader config file %s to peer host %s" % (filename, peer_ip))
+
+        return FileResponseData(self._root, filename)
+
     def get_response_data(self):
+        logging.info("%s | GET %s" % (self._peer[0], self._path))
+
         if self._path == 'boot.efi' or self._path == '/boot.efi':
             return self.get_bootloader_response()
 
         if self._path == 'grub/grub.cfg' or self._path == '/grub/grub.cfg':
-            peer_ip = self._peer[0]
-            peer_mac = self.get_mac_address(peer_ip)
-            filename = "pxelinux.cfg/01-" + peer_mac.lower().replace(":", "-")
-            logging.info("%r | %r | %r" % (peer_ip, peer_mac, filename))
-            return FileResponseData(self._root, filename)
+            return self.get_bootloader_config_response()
+
+        logging.info(
+            "Returning static file %s to peer host %s" % (self._path, self._peer[0]))
 
         return FileResponseData(self._root, self._path)
 
@@ -190,6 +206,8 @@ def main():
 
     logging.getLogger().setLevel(log_level)
 
+    logging.info("Starting TFTP server on %s:%s" % (args.bind, args.port))
+
     server = TftpServer(
         args.bind,
         args.port,
@@ -203,6 +221,7 @@ def main():
     )
     try:
         server.run()
+        logging.info("TFTP root directory is %s" % args.root)
     except KeyboardInterrupt:
         server.close()
 
