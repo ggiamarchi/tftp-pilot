@@ -150,17 +150,17 @@ def get_arguments():
 
 
 def print_session_stats(stats):
-    logging.info("Stats: for %r requesting %r" % (stats.peer, stats.file_path))
-    logging.info("Error: %r" % stats.error)
-    logging.info("Time spent: %dms" % (stats.duration() * 1e3))
-    logging.info("Packets sent: %d" % stats.packets_sent)
-    logging.info("Packets ACKed: %d" % stats.packets_acked)
-    logging.info("Bytes sent: %d" % stats.bytes_sent)
-    logging.info("Options: %r" % stats.options)
-    logging.info("Blksize: %r" % stats.blksize)
-    logging.info("Retransmits: %d" % stats.retransmits)
-    logging.info("Server port: %d" % stats.server_addr[1])
-    logging.info("Client port: %d" % stats.peer[1])
+    logging.debug("Stats: for %r requesting %r" % (stats.peer, stats.file_path))
+    logging.debug("Error: %r" % stats.error)
+    logging.debug("Time spent: %dms" % (stats.duration() * 1e3))
+    logging.debug("Packets sent: %d" % stats.packets_sent)
+    logging.debug("Packets ACKed: %d" % stats.packets_acked)
+    logging.debug("Bytes sent: %d" % stats.bytes_sent)
+    logging.debug("Options: %r" % stats.options)
+    logging.debug("Blksize: %r" % stats.blksize)
+    logging.debug("Retransmits: %d" % stats.retransmits)
+    logging.debug("Server port: %d" % stats.server_addr[1])
+    logging.debug("Client port: %d" % stats.peer[1])
 
 
 def print_server_stats(stats):
@@ -168,9 +168,9 @@ def print_server_stats(stats):
     Print server stats - see the ServerStats class
     """
     counters = stats.get_and_reset_all_counters()
-    logging.info("Server stats - every %d seconds" % stats.interval)
+    logging.debug("Server stats - every %d seconds" % stats.interval)
     if "process_count" in counters:
-        logging.info(
+        logging.debug(
             "Number of spawned TFTP workers in stats time frame : %d"
             % counters["process_count"]
         )
