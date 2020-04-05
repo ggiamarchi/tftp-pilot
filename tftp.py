@@ -4,7 +4,10 @@ import argparse
 import logging
 import os
 
+import requests
+
 from fbtftp.base_handler import BaseHandler
+from fbtftp.base_handler import StringResponseData
 from fbtftp.base_handler import ResponseData
 from fbtftp.base_server import BaseServer
 
@@ -25,8 +28,10 @@ class FileResponseData(ResponseData):
 
 
 class RequestHandler(BaseHandler):
-    def __init__(self, server_addr, peer, path, options, root, stats_callback):
+    def __init__(self, server_addr, peer, path, options, root, pxe_pilot_url, pxe_pilot_local, stats_callback):
         self._root = root
+        self._pxe_pilot_url = pxe_pilot_url
+        self._pxe_pilot_local = pxe_pilot_local
         super().__init__(server_addr, peer, path, options, stats_callback)
 
     def get_mac_address(self, ip_addr):
@@ -38,12 +43,50 @@ class RequestHandler(BaseHandler):
                 return token[3]
         return None
 
+    def get_bootloader_response(self):
+        peer_ip = self._peer[0]
+        peer_mac = self.get_mac_address(peer_ip)
+
+        logging.info("Peer MAC address found for %s :: %s" %
+                     (peer_ip, peer_mac))
+
+        pxe_pilot_host = None
+
+        r = requests.get("%s/v1/hosts?status=false" % self._pxe_pilot_url)
+        # TODO check responses errors
+
+        hosts = r.json()
+
+        logging.info("Pxe Pilot hosts :: %r" % hosts)
+
+        for host in hosts:
+            logging.info("1 :: %r" % host)
+            for mac in host['macAddresses']:
+                logging.info("2 :: %s - %s" % (mac, peer_mac))
+                if mac == peer_mac:
+                    logging.info("Pxe Pilot host found :: %r" % host)
+                    pxe_pilot_host = host
+                    break
+
+        if pxe_pilot_host != None and pxe_pilot_host['configuration']['name'] == self._pxe_pilot_local:
+            logging.info(
+                "Returning empty response to peer host %s" % peer_ip)
+            return StringResponseData("")
+
+        logging.info(
+            "Returning satic file response to peer host %s" % peer_ip)
+
+        return FileResponseData(os.path.join(self._root, self._path))
+
     def get_response_data(self):
+        if self._path == 'boot.efi' or self._path == '/boot.efi':
+            return self.get_bootloader_response()
+
         if self._path == 'grub/grub.cfg' or self._path == '/grub/grub.cfg':
-            ip = self._peer[0]
-            mac = self.get_mac_address(ip)
-            filename = "pxelinux.cfg/01-" + mac.lower().replace(":", "-")
-            logging.info("%r | %r | %r" % (ip, mac, filename))
+            peer_ip = self._peer[0]
+            peer_mac = self.get_mac_address(peer_ip)
+            filename = "pxelinux.cfg/01-" + peer_mac.lower().replace(":", "-")
+            logging.info("%r | %r | %r" % (peer_ip, peer_mac, filename))
             return FileResponseData(os.path.join(self._root, filename))
 
         return FileResponseData(os.path.join(self._root, self._path))
@@ -57,25 +100,38 @@ class TftpServer(BaseServer):
         retries,
         timeout,
         root,
+        pxe_pilot_url,
+        pxe_pilot_local,
         handler_stats_callback,
         server_stats_callback=None,
     ):
         self._root = root
+        self._pxe_pilot_url = pxe_pilot_url
+        self._pxe_pilot_local = pxe_pilot_local
         self._handler_stats_callback = handler_stats_callback
         super().__init__(address, port, retries, timeout, server_stats_callback)
 
     def get_handler(self, server_addr, peer, path, options):
         return RequestHandler(
-            server_addr, peer, path, options, self._root, self._handler_stats_callback
+            server_addr, peer, path, options, self._root, self._pxe_pilot_url, self._pxe_pilot_local, self._handler_stats_callback
         )
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ip", type=str, default="::",
+
+    parser.add_argument("--bind", type=str, default="::",
                         help="IP address to bind to")
+
     parser.add_argument("--port", type=int, default=6969,
                         help="port to bind to")
+
+    parser.add_argument("--pxe-pilot-url", type=str,
+                        help="PXE Pilot API base URL")
+
+    parser.add_argument("--pxe-pilot-local", type=str, default="local",
+                        help="PXE Pilot local boot configuration name")
+
     parser.add_argument(
         "--retries", type=int, default=5, help="number of per-packet retries"
     )
@@ -119,11 +175,13 @@ def main():
     args = get_arguments()
     logging.getLogger().setLevel(logging.DEBUG)
     server = TftpServer(
-        args.ip,
+        args.bind,
         args.port,
         args.retries,
         args.timeout_s,
         args.root,
+        args.pxe_pilot_url,
+        args.pxe_pilot_local,
         print_session_stats,
         print_server_stats,
     )
