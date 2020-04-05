@@ -29,4 +29,8 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Intended Audience :: Developers",
     ],
+    install_requires=[
+        "fbtftp == 0.2",
+        "requests == 2.23.0",
+    ]
 )
