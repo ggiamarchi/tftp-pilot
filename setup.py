@@ -7,7 +7,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="tftp-pilot",
-    version="0.1.0",
+    version="0.2.0",
     author="Guillaume Giamarchi",
     author_email="guillaume.giamarchi@gmail.com",
     description=("Dynamic TFTP implementation for PXE Pilot. Based on fbtftp."),
