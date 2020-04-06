@@ -45,7 +45,7 @@ class RequestHandler(BaseHandler):
                 return token[3]
         return None
 
-    def get_bootloader_response(self):
+    def get_pxe_pilot_host(self):
         peer_ip = self._peer[0]
         peer_mac = self.get_mac_address(peer_ip)
 
@@ -74,15 +74,23 @@ class RequestHandler(BaseHandler):
                     pxe_pilot_host = host
                     break
 
+        return pxe_pilot_host
+
+    def get_bootloader_response(self):
+        peer_ip = self._peer[0]
+        pxe_pilot_host = self.get_pxe_pilot_host()
+
         if pxe_pilot_host != None and pxe_pilot_host['configuration']['name'] == self._pxe_pilot_local:
             logging.info(
                 "PXE Pilot config is '%s'. Returning empty response to peer host %s" % (self._pxe_pilot_local, peer_ip))
             return StringResponseData("")
 
-        logging.info(
-            "Returning static file %s to peer host %s" % (self._path, peer_ip))
+        boot_file = pxe_pilot_host['configuration']['bootloader']['file']
 
-        return FileResponseData(self._root, self._path)
+        logging.info(
+            "Returning static file %s to peer host %s" % (boot_file, peer_ip))
+
+        return FileResponseData(self._root, boot_file)
 
     def get_bootloader_config_response(self):
         peer_ip = self._peer[0]
@@ -95,14 +103,31 @@ class RequestHandler(BaseHandler):
         return FileResponseData(self._root, filename)
 
     def get_response_data(self):
+        peer_ip = self._peer[0]
+
         if self._path == 'boot.efi' or self._path == '/boot.efi':
+            logging.info("Peer %s is requesting a bootloader binary", peer_ip)
             return self.get_bootloader_response()
 
-        if self._path == 'grub/grub.cfg' or self._path == '/grub/grub.cfg':
+        r = requests.get("%s/v1/bootloaders" % self._pxe_pilot_url)
+
+        if r.status_code != 200:
+            logging.error("Unable to read host list from PXE Pilot")
+            raise Exception()
+
+        bootloaders = r.json()
+
+        config_path_list = []
+        for bootloader in bootloaders:
+            config_path_list.append(bootloader['config_path'])
+
+        if self._path in config_path_list:
+            logging.info("Peer %s is requesting a bootloader configuration", peer_ip)
             return self.get_bootloader_config_response()
 
+        logging.info("Peer %s is requesting a static file", peer_ip)
         logging.info(
-            "Returning static file %s to peer host %s" % (self._path, self._peer[0]))
+            "Returning static file %s to peer host %s" % (self._path, peer_ip))
 
         return FileResponseData(self._root, self._path)
 
