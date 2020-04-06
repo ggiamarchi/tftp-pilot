@@ -6,7 +6,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="TFTP Pilot",
+    name="tftp-pilot",
     version="0.1.0",
     author="Guillaume Giamarchi",
     author_email="guillaume.giamarchi@gmail.com",
