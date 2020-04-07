@@ -1,3 +1,7 @@
 .vagrant/
 .venv/
 *.log
+build/
+dist/
+tftppilot/__pycache__/
+tftp_pilot.egg-info/
