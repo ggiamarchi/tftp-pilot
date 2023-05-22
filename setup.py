@@ -31,6 +31,6 @@ setup(
     ],
     install_requires=[
         "fbtftp == 0.2",
-        "requests == 2.23.0",
+        "requests == 2.31.0",
     ]
 )
